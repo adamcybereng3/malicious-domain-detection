@@ -6,9 +6,9 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from sklearn.dummy import DummyClassifier
 from sklearn.linear_model import LogisticRegressionCV, LogisticRegression
-from sklearn.metrics import classification_report
+from sklearn.metrics import classification_report, confusion_matrix
 from sklearn.metrics import RocCurveDisplay, PrecisionRecallDisplay
-from sklearn.tree import DecisionTreeClassifier
+from sklearn.tree import DecisionTreeClassifier, export_text
 import matplotlib.pyplot as plt
 
 ## Data Import
@@ -42,7 +42,7 @@ print("Rows after removing duplicates:", len(dga_clean))
 
 print("Total domain duplicates: ", dga_clean["domain"].duplicated().sum())
 
-# Separate legit vs. malicious domainss
+# Separate legit vs. malicious domains
 legit = dga_clean[dga_clean["label"] == 0]
 dga_only = dga_clean[dga_clean["label"] == 1]
 
@@ -89,7 +89,7 @@ def get_name(domain):
 def length(name):
     return len(name)
 
-# Feature 2 - Fraction of digits to total letters in domain name:
+# Feature 2 - Fraction of digits to total characters in domain name:
 def digit_ratio(name):
     if len(name) == 0:
         return 0
@@ -104,7 +104,7 @@ def vowel_ratio(name):
     vowels = sum(c in "aeiou" for c in letters)
     return vowels / len(letters)
 
-# Feature 4 - Seeing the frequency of the same character in a domain name:
+# Feature 4 - How randomly or evenly letters are spread
 def entropy(name):
     if len(name) == 0:
         return 0
@@ -112,7 +112,7 @@ def entropy(name):
     total = len(name)
     return -sum((n / total) * math.log2(n / total) for n in counts.values())
 
-# Feature 5 - Determining if there are a more than three consenants in a row in domain name:
+# Feature 5 - Determining the longest run length of consonants:
 def max_consonant_run(name):
     longest = 0
     current = 0
@@ -124,7 +124,7 @@ def max_consonant_run(name):
             current = 0
     return longest
 
-# Future 6 - Count hyphens in domain name:
+# Feature 6 - Count hyphens in domain name:
 def hyphen_count(name):
     return name.count("-")
 
@@ -222,6 +222,15 @@ for name, X_test, y_test in [("seen families", X_test_seen, y_test_seen),
     print("===== Decision tree -", name, "=====")
     print(classification_report(y_test, tree.predict(X_test), zero_division=0))
     
+print(export_text(tree, feature_names=feature_cols))
+print(pd.Series(tree.feature_importances_, index=feature_cols).sort_values(ascending=False))
+
+# Recall for family on unseen families - Unsupervised
+dga_unseen_rows = test_unseen[test_unseen["label"] == 1].copy()
+dga_unseen_rows["lasso_pred"] = lasso.predict(scaler.transform(dga_unseen_rows[feature_cols]))
+dga_unseen_rows["tree_pred"] = tree.predict(dga_unseen_rows[feature_cols])
+print(dga_unseen_rows.groupby("family")[["lasso_pred", "tree_pred"]].mean())
+
 # Results
 
 # Each model's score for every test domain
@@ -233,6 +242,7 @@ fig, ax = plt.subplots()
 RocCurveDisplay.from_predictions(y_test_unseen, lasso_scores, name="LASSO", ax=ax)
 RocCurveDisplay.from_predictions(y_test_unseen, tree_scores, name="Decision tree", ax=ax)
 ax.set_title("ROC curve (unseen families)")
+plt.savefig("roc_unseen.png")
 plt.show()
 
 # Precision recall curve
@@ -240,12 +250,21 @@ fig, ax = plt.subplots()
 PrecisionRecallDisplay.from_predictions(y_test_unseen, lasso_scores, name="LASSO", ax=ax)
 PrecisionRecallDisplay.from_predictions(y_test_unseen, tree_scores, name="Decision tree", ax=ax)
 ax.set_title("Precision-recall curve (unseen families)")
+plt.savefig("pr_unseen.png")
 plt.show()
 
 # Alert precision from results
 def alert_precision(tpr, fpr, base_rate):
     return (tpr * base_rate) / (tpr * base_rate + fpr * (1 - base_rate))
 
+def rates(y_true, y_pred):
+    tn, fp, fn, tp = confusion_matrix(y_true, y_pred).ravel()
+    return tp / (tp + fn), fp / (fp + tn)   # TPR, FPR
+
 # True Positive Rate (TPR) and False Positive Rate (FPR) from the unseen families results
-print("LASSO:", alert_precision(0.62, 0.13, 0.001))
-print("Decision tree:", alert_precision(0.41, 0.04, 0.001))
+lasso_tpr, lasso_fpr = rates(y_test_unseen, lasso.predict(X_test_unseen_scaled))
+tree_tpr, tree_fpr = rates(y_test_unseen, tree.predict(X_test_unseen))
+
+for p in [0.01, 0.001]:
+    print(f"Base rate {p}: LASSO = {alert_precision(lasso_tpr, lasso_fpr, p):.4f}, "
+          f"tree = {alert_precision(tree_tpr, tree_fpr, p):.4f}")
