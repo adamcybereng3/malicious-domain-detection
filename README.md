@@ -1,6 +1,6 @@
 # Applying Machine Learning to Detect Malicious DGA Domains
 
-This project uses the publicly available dga_domain dataset to detect malicious domains created by domain generations algorithms (DGAs). LASSO logistic regression and a decision tree are trained on the dataset. Both approaches are tested on families held out from training.
+This project uses the publicly available dga_domain dataset to detect malicious domains created by domain generations algorithms (DGAs). Regular and LASSO logistic regression are trained on the dataset. Both approaches are tested on families held out from training.
 
 ## Dataset
 
@@ -34,7 +34,7 @@ python evaluation.py
 ```
 ### Output
 
-The script produces a combination of textual and graphical outputs. On the console, a series of tables will be printed which include a summary of the data's attributes, classification reports, LASSO coefficient scores, decision tree rules, recall for every family, and base-rate results. Two separate plots will generate towards the end of the program, which include an ROC and Precision-Recall curve. The script pauses when each plot windows appears, and continues when the user closes each one.
+The script produces a combination of textual and graphical outputs. On the console, a series of tables will be printed which include a summary of the data's attributes, classification reports, LASSO coefficient scores, recall for every family, and base-rate results. Two separate plots will generate towards the end of the program, which include an ROC and Precision-Recall curve. The script pauses when each plot windows appears, and continues when the user closes each one.
 
 Since all random steps are done on a fixed seed (random_state=0), the results will always be identitcal every run. 
 
@@ -53,27 +53,27 @@ Chosen lambda: 1291.549665014884
 4  max_consonant_run     1.576274
 ```
 
-#### Decision Tree Seen vs. Unseen Families
+#### Logistic Regression Seen vs. Unseen Families
 ```bash
-===== Decision tree - seen families =====
+===== Logistic regression - seen families =====
               precision    recall  f1-score   support
 
-           0       0.82      0.96      0.89    101202
-           1       0.86      0.55      0.67     45900
+           0       0.83      0.87      0.85    101202
+           1       0.69      0.61      0.65     45900
 
-    accuracy                           0.83    147102
-   macro avg       0.84      0.75      0.78    147102
-weighted avg       0.83      0.83      0.82    147102
+    accuracy                           0.79    147102
+   macro avg       0.76      0.74      0.75    147102
+weighted avg       0.79      0.79      0.79    147102
 
-===== Decision tree - unseen families =====
+===== Logistic regression - unseen families =====
               precision    recall  f1-score   support
 
-           0       0.60      0.96      0.74    101202
-           1       0.92      0.41      0.57    108000
+           0       0.68      0.87      0.77    101202
+           1       0.84      0.62      0.72    108000
 
-    accuracy                           0.68    209202
-   macro avg       0.76      0.68      0.65    209202
-weighted avg       0.76      0.68      0.65    209202
+    accuracy                           0.74    209202
+   macro avg       0.76      0.75      0.74    209202
+weighted avg       0.77      0.74      0.74    209202
 ```
 
 
