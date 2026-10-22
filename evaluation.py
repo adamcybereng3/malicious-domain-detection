@@ -8,7 +8,6 @@ from sklearn.dummy import DummyClassifier
 from sklearn.linear_model import LogisticRegressionCV, LogisticRegression
 from sklearn.metrics import classification_report, confusion_matrix
 from sklearn.metrics import RocCurveDisplay, PrecisionRecallDisplay
-from sklearn.tree import DecisionTreeClassifier, export_text
 import matplotlib.pyplot as plt
 
 ## Data Import
@@ -207,48 +206,45 @@ print("Chosen lambda:", 1 / best_C)
 coefs = pd.DataFrame({"feature": feature_cols, "coefficient": lasso.coef_[0]})
 print(coefs.sort_values("coefficient"))
 
+# Compare coefficients with and without feature selection
+coef_compare = pd.DataFrame({
+    "feature": feature_cols,
+    "logistic regression": logreg.coef_[0],
+    "LASSO": lasso.coef_[0],
+})
+print(coef_compare)
+
 # LASSO Results
 print("===== LASSO - seen families =====")
 print(classification_report(y_test_seen, lasso.predict(X_test_seen_scaled), zero_division=0))
 print("===== LASSO - unseen families =====")
 print(classification_report(y_test_unseen, lasso.predict(X_test_unseen_scaled), zero_division=0))
 
-# Decision Tree 
-tree = DecisionTreeClassifier(max_depth=5, random_state=0)
-tree.fit(X_train, y_train)
-
-for name, X_test, y_test in [("seen families", X_test_seen, y_test_seen),
-                             ("unseen families", X_test_unseen, y_test_unseen)]:
-    print("===== Decision tree -", name, "=====")
-    print(classification_report(y_test, tree.predict(X_test), zero_division=0))
-    
-print(export_text(tree, feature_names=feature_cols))
-print(pd.Series(tree.feature_importances_, index=feature_cols).sort_values(ascending=False))
-
-# Recall for family on unseen families - Unsupervised
+# Recall per family on unseen families (fraction of each family's domains caught)
 dga_unseen_rows = test_unseen[test_unseen["label"] == 1].copy()
-dga_unseen_rows["lasso_pred"] = lasso.predict(scaler.transform(dga_unseen_rows[feature_cols]))
-dga_unseen_rows["tree_pred"] = tree.predict(dga_unseen_rows[feature_cols])
-print(dga_unseen_rows.groupby("family")[["lasso_pred", "tree_pred"]].mean())
+X_family = scaler.transform(dga_unseen_rows[feature_cols])
+dga_unseen_rows["logreg_pred"] = logreg.predict(X_family)
+dga_unseen_rows["lasso_pred"] = lasso.predict(X_family)
+print(dga_unseen_rows.groupby("family")[["logreg_pred", "lasso_pred"]].mean())
 
 # Results
 
 # Each model's score for every test domain
+logreg_scores = logreg.predict_proba(X_test_unseen_scaled)[:, 1]
 lasso_scores = lasso.predict_proba(X_test_unseen_scaled)[:, 1]
-tree_scores = tree.predict_proba(X_test_unseen)[:, 1]
 
 # ROC curve
 fig, ax = plt.subplots()
+RocCurveDisplay.from_predictions(y_test_unseen, logreg_scores, name="Logistic regression", ax=ax)
 RocCurveDisplay.from_predictions(y_test_unseen, lasso_scores, name="LASSO", ax=ax)
-RocCurveDisplay.from_predictions(y_test_unseen, tree_scores, name="Decision tree", ax=ax)
 ax.set_title("ROC curve (unseen families)")
 plt.savefig("roc_unseen.png")
 plt.show()
 
 # Precision recall curve
 fig, ax = plt.subplots()
+PrecisionRecallDisplay.from_predictions(y_test_unseen, logreg_scores, name="Logistic regression", ax=ax)
 PrecisionRecallDisplay.from_predictions(y_test_unseen, lasso_scores, name="LASSO", ax=ax)
-PrecisionRecallDisplay.from_predictions(y_test_unseen, tree_scores, name="Decision tree", ax=ax)
 ax.set_title("Precision-recall curve (unseen families)")
 plt.savefig("pr_unseen.png")
 plt.show()
@@ -262,9 +258,9 @@ def rates(y_true, y_pred):
     return tp / (tp + fn), fp / (fp + tn)   # TPR, FPR
 
 # True Positive Rate (TPR) and False Positive Rate (FPR) from the unseen families results
+logreg_tpr, logreg_fpr = rates(y_test_unseen, logreg.predict(X_test_unseen_scaled))
 lasso_tpr, lasso_fpr = rates(y_test_unseen, lasso.predict(X_test_unseen_scaled))
-tree_tpr, tree_fpr = rates(y_test_unseen, tree.predict(X_test_unseen))
 
 for p in [0.01, 0.001]:
-    print(f"Base rate {p}: LASSO = {alert_precision(lasso_tpr, lasso_fpr, p):.4f}, "
-          f"tree = {alert_precision(tree_tpr, tree_fpr, p):.4f}")
+    print(f"Base rate {p}: logistic regression = {alert_precision(logreg_tpr, logreg_fpr, p):.4f}, "
+          f"LASSO = {alert_precision(lasso_tpr, lasso_fpr, p):.4f}")
