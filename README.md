@@ -1,23 +1,25 @@
 # Applying Machine Learning to Detect Malicious DGA Domains
 
-This project uses the publicly available dga_domain dataset to detect malicious domains created by the Domain Generation Algorithm (DGA). LASSO logistic regression and a decision tree are trained on the dataset. Both approaches are tested on families held out from training.
+This project uses the publicly available dga_domain dataset to detect malicious domains created by domain generations algorithms (DGAs). LASSO logistic regression and a decision tree are trained on the dataset. Both approaches are tested on families held out from training.
 
 ## Dataset
 
-The dataset is known as the [DGA_domains_dataset](https://github.com/chrmor/DGA_domains_dataset), available on GitHub. It was produced as part of a study from the Expert Systems and Applications Journal. The authors permitted public use of the data for research purposes. The dataset was downloaded 9/2026 to support training the algorithms associated with this project. 
+The dataset is known as the [DGA_domains_dataset](https://github.com/chrmor/DGA_domains_dataset), available on GitHub. It was produced as part of a study from the Expert Systems and Applications Journal. The authors permitted public use of the data for research purposes. The domains were extracted from 25 DGA families from the Netlab Opendata Project and Alexa was were the benign domains were sourced from. The dataset was downloaded 9/2026 to support training the algorithms associated with this project. 
 
-To use the dataset, it must be downloaded and uploaded into a local code repository. Preferably, it should be stored in the same folder where the training and testing source code is housed. The following is the file fourmat:
-
+### Citation and DOI
 ```bash
-dga_domains_full.csv
+Cucchiarelli, A., Morbidoni, C., Spalazzi, L., Baldi, M., Algorithmically generated malicious domain names detection based on n-grams features (2021) Expert Systems with Applications, 170, art. no. 114551
+https://doi.org/10.1016/j.eswa.2020.114551
 ```
+To use the dataset, it must be downloaded into a local code repository. Preferably, it should be stored in the same folder where the training and testing source code is housed. The dga_domains_full.csv file must be in the same folder as the script.
+
 The file includes a series of three columns with no header. The three general categories include the label, family, and domain string. 
 
 ## Requirements
 
-The script was run Python version 3.13.14. Ensure the Python version installed on your system is at least 3.13.
+The script was tested on Python version 3.13.14. 
 
-Multiple packages are used for data preprocessing, training/testing, and reporting. At minimum, it is reccomended to install the following packages to ensure the script can have the necessary dependencies to execute all libraries. See the following command to install the appropiate packages:
+Multiple packages are used for data preprocessing, training/testing, and reporting. At minimum, it is recommended to install the following packages to ensure the script can have the necessary dependencies to execute all libraries. See the following command to install the appropriate packages:
 
 ```bash
 python -m pip install pandas numpy scikit-learn matplotlib
@@ -28,15 +30,17 @@ python -m pip install pandas numpy scikit-learn matplotlib
 Ensure you are in the script's working directory in an IDE, command-line interface, or terminal. The following is the command to execute the script:
 
 ```bash
-evaluation.py
+python evaluation.py
 ```
 ### Output
 
-The script produces a combination of textual and graphical outputs. On the console, a series of tables will be printed which include a summary of the data's attributes, classification reports, LASSO coefficient scores, decision tree rules, recall for every family, and base-rate results. Two separate plots will be generate towards the end of the program, which include and ROC and Precision-Recall curve.
+The script produces a combination of textual and graphical outputs. On the console, a series of tables will be printed which include a summary of the data's attributes, classification reports, LASSO coefficient scores, decision tree rules, recall for every family, and base-rate results. Two separate plots will generate towards the end of the program, which include an ROC and Precision-Recall curve. The script pauses when each plot windows appears, and continues when the user closes each one.
 
-Since all random steps are done on a fixed seeed (random_state=0), the results will always be identitcal every run. 
+Since all random steps are done on a fixed seed (random_state=0), the results will always be identitcal every run. 
 
-#### LAMBDA Coefficients
+The following are sample outputs from the final run:
+
+#### LASSO Coefficients
 ```bash
 Chosen lambda: 1291.549665014884
              feature  coefficient
