@@ -80,10 +80,6 @@ def get_name(domain):
     parts = domain.split(".")
     return parts[0]
 
-# print(get_name("mzltrack.com"))
-# print(get_name("plasticbags.sa.com"))
-# print(get_name("cvyh1po636avyrsxebwbkn7.ddns.net"))
-
 # Feature 1 - Domain name length:
 def length(name):
     return len(name)
@@ -154,7 +150,7 @@ train = add_features(train)
 test_seen = add_features(test_seen)
 test_unseen = add_features(test_unseen)
 
-# print(train.groupby("label")[["length", "digit_ratio", "vowel_ratio", "entropy"]].mean())
+print(train.groupby("label")[["length", "digit_ratio", "vowel_ratio", "entropy"]].mean())
 
 #  Define training and test sets across all three categories:
 X_train = train[feature_cols]
@@ -187,7 +183,7 @@ for name, model in [("Majority", majority), ("Logistic regression", logreg)]:
     print("=====", name, "- unseen families =====")
     print(classification_report(y_test_unseen, model.predict(X_test_unseen_scaled), zero_division=0))
     
-# Implement LASSO penalty algorithm - Supervised
+# Implement LASSO penalty algorithm 
 lasso = LogisticRegressionCV(
     Cs=10,               
     cv=5,                
@@ -261,6 +257,7 @@ def rates(y_true, y_pred):
 logreg_tpr, logreg_fpr = rates(y_test_unseen, logreg.predict(X_test_unseen_scaled))
 lasso_tpr, lasso_fpr = rates(y_test_unseen, lasso.predict(X_test_unseen_scaled))
 
+# Applying the Bayes rule to assess alert precision at realistic rates
 for p in [0.01, 0.001]:
     print(f"Base rate {p}: logistic regression = {alert_precision(logreg_tpr, logreg_fpr, p):.4f}, "
           f"LASSO = {alert_precision(lasso_tpr, lasso_fpr, p):.4f}")
